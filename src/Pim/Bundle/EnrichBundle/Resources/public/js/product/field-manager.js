@@ -11,6 +11,7 @@ define(
     ['jquery', 'underscore', 'pim/fetcher-registry', 'pim/form-config-provider', 'require-context'],
     function ($, _, FetcherRegistry, ConfigProvider, requireContext) {
         var fields = {};
+        var visibleFields = {};
         var loadedModules = {};
         var getFieldForAttribute = function (attribute) {
             var deferred = $.Deferred();
@@ -69,8 +70,20 @@ define(
             getFields: function () {
                 return fields;
             },
+            addVisibleField: function (attributeCode) {
+                visibleFields[attributeCode] = fields[attributeCode];
+            },
+            getVisibleFields: function () {
+                return visibleFields;
+            },
+            getVisibleField: function (attributeCode) {
+                return visibleFields[attributeCode];
+            },
             clearFields: function () {
                 fields = {};
+            },
+            clearVisibleFields: function () {
+                visibleFields = {};
             }
         };
     }

@@ -189,6 +189,7 @@ define(
                         this.getExtension('attribute-group-selector').setElements(
                             _.indexBy(attributeGroups, 'code')
                         );
+                        FieldManager.clearVisibleFields();
                     })
                     .then(() => this.filterValues(data.values))
                     .then((values) => this.createFields(data, values))
@@ -255,6 +256,7 @@ define(
                     });
 
                     field.setValues(values);
+                    FieldManager.addVisibleField(field.attribute.code);
 
                     return field;
                 }.bind(this));
@@ -456,6 +458,10 @@ define(
                         }
                     });
                     values = filteredValues;
+                }
+
+                if (undefined === this.getExtension('attribute-filter')) {
+                    return $.Deferred().resolve(values);
                 }
 
                 return this.getExtension('attribute-filter').filterValues(values);
