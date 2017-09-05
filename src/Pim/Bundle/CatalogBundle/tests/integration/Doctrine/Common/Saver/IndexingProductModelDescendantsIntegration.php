@@ -5,6 +5,7 @@ namespace tests\integration\Pim\Bundle\CatalogBundle\Doctrine\Common\Saver;
 use Akeneo\Bundle\ElasticsearchBundle\Client;
 use Akeneo\Test\Integration\Configuration;
 use Akeneo\Test\Integration\TestCase;
+use Pim\Bundle\CatalogBundle\tests\integration\PQB\AbstractProductAndProductModelQueryBuilderTestCase;
 use Pim\Component\Catalog\Model\ProductModelInterface;
 use Pim\Component\Catalog\Model\VariantProduct;
 use Pim\Component\Catalog\Model\VariantProductInterface;
@@ -12,22 +13,9 @@ use Pim\Component\Catalog\Model\VariantProductInterface;
 /**
  * Test product models and their descendants have been correctly indexed after being saved.
  */
-class IndexingProductModelDescendantsIntegration extends TestCase
+class IndexingProductModelDescendantsIntegration extends AbstractProductAndProductModelQueryBuilderTestCase
 {
     private const DOCUMENT_TYPE = 'pim_catalog_product';
-
-    /** @var Client */
-    private $esProductAndProductModelClient;
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function setUp()
-    {
-        parent::setUp();
-
-        $this->esProductAndProductModelClient = $this->get('akeneo_elasticsearch.client.product_and_product_model');
-    }
 
     public function testIndexingProductModelDescendantsOnUnitarySave()
     {
@@ -170,15 +158,15 @@ class IndexingProductModelDescendantsIntegration extends TestCase
      */
     private function createProductsAndProductModelsTree(string $seed)
     {
-        $rootProductModel = $this->createProductModel($seed . '_root_product_model', null);
+        $rootProductModel = $this->createProductModel($seed . '_root_product_model', 'familyVariantA1', null, []);
 
-        $subProductModel1 = $this->createProductModel($seed . '_sub_product_model_1', $rootProductModel);
-        $subProductModel2 = $this->createProductModel($seed . '_sub_product_model_2', $rootProductModel);
+        $subProductModel1 = $this->createProductModel($seed . '_sub_product_model_1', 'familyVariantA1', $rootProductModel, []);
+        $subProductModel2 = $this->createProductModel($seed . '_sub_product_model_2', 'familyVariantA1', $rootProductModel, []);
 
-        $variantProduct1 = $this->createVariantProduct($seed . '_product_variant_1', $subProductModel1);
-        $variantProduct2 = $this->createVariantProduct($seed . '_product_variant_2', $subProductModel1);
-        $variantProduct3 = $this->createVariantProduct($seed . '_product_variant_3', $subProductModel2);
-        $variantProduct4 = $this->createVariantProduct($seed . '_product_variant_4', $subProductModel2);
+        $variantProduct1 = $this->createVariantProduct($seed . '_product_variant_1', 'familyA', 'familyVariantA1', $subProductModel1, []);
+        $variantProduct2 = $this->createVariantProduct($seed . '_product_variant_2', 'familyA', 'familyVariantA1', $subProductModel1, []);
+        $variantProduct3 = $this->createVariantProduct($seed . '_product_variant_3', 'familyA', 'familyVariantA1', $subProductModel2, []);
+        $variantProduct4 = $this->createVariantProduct($seed . '_product_variant_4', 'familyA', 'familyVariantA1', $subProductModel2, []);
 
         $this->get('pim_catalog.saver.product_model')->save($rootProductModel);
         $this->get('pim_catalog.saver.product_model')->saveAll([$subProductModel1, $subProductModel2]);
@@ -188,63 +176,5 @@ class IndexingProductModelDescendantsIntegration extends TestCase
             $variantProduct3,
             $variantProduct4,
         ]);
-    }
-
-    /**
-     * @param string                     $identifier
-     * @param null|ProductModelInterface $parent
-     *
-     * @return ProductModelInterface
-     */
-    private function createProductModel(
-        string $identifier,
-        $parent
-    ): ProductModelInterface {
-        $productModel = $this->get('pim_catalog.factory.product_model')->create();
-
-        $this->get('pim_catalog.updater.product_model')->update($productModel, [
-            'code'           => $identifier,
-            'family_variant' => 'familyVariantA1',
-        ]);
-
-        if (null !== $parent) {
-            $productModel->setParent($parent);
-        }
-
-        return $productModel;
-    }
-
-    /**
-     * TODO: use the factory/builder of variant products when it exists
-     *
-     * Creates a variant product with identifier and product model parent
-     *
-     * @param string                $identifier
-     * @param ProductModelInterface $parent
-     *
-     * @return VariantProductInterface
-     */
-    private function createVariantProduct(string $identifier, ProductModelInterface $parent): VariantProductInterface
-    {
-        $variantProduct = new VariantProduct();
-
-        $identifierAttribute = $this->get('pim_catalog.repository.attribute')->findOneByCode('sku');
-
-        $entityWithValuesBuilder = $this->get('pim_catalog.builder.entity_with_values');
-        $entityWithValuesBuilder->addOrReplaceValue($variantProduct, $identifierAttribute, null, null, $identifier);
-
-        $this->get('pim_catalog.updater.product')->update(
-            $variantProduct,
-            [
-                'family' => 'familyA',
-            ]
-        );
-
-        $variantProduct->setParent($parent);
-
-        $familyVariant = $this->get('pim_catalog.repository.family_variant')->findOneByCode('familyVariantA1');
-        $variantProduct->setFamilyVariant($familyVariant);
-
-        return $variantProduct;
     }
 }
